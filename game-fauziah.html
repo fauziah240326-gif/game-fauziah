@@ -1,17 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Tebak Angka - Lengkap</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 450px; margin: auto; }
+        .box { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        input { padding: 8px; width: 120px; font-size: 16px; }
+        button { padding: 8px 16px; font-size: 16px; margin-left: 8px; cursor: pointer; }
+        .hasil { margin-top: 15px; font-size: 17px; font-weight: bold; min-height: 30px; }
+        .benar { color: green; }
+        .salah { color: red; }
+        .info { color: blue; font-size: 14px; margin-top: 8px; }
+        .batas { color: darkorange; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🎮 Game Tebak Angka</h2>
+    <p>Tebak angka antara <b>1 sampai 100</b></p>
+
+    <input type="number" id="inputTebak" placeholder="Masukkan angka" min="1" max="100">
+    <button onclick="mulaiCekTebakan()">Cek</button>
+
+    <div class="hasil" id="pesan"></div>
+    <div class="info" id="infoBatas"></div>
+    <div class="info" id="infoRiwayat"></div>
+    <br>
+    <button onclick="mulaiBermainUlang()">🔄 Main Lagi</button>
+</div>
+
 <script>
-const angkaBenar = Math.floor(Math.random() * 100) + 1;
-let percobaan = 0;
-const tombol = document.querySelector('button');
-tombol.onclick = function() {
-    percobaan++;
-    const tebakan = document.getElementById('tebakan').value;
-    const hasil = document.getElementById('hasil');
-    if (tebakan < angkaBenar) {
-        hasil.textContent = "Terlalu Kecil! Percobaan: " + percobaan;
-    } else if (tebakan > angkaBenar) {
-        hasil.textContent = "Terlalu Besar! Percobaan: " + percobaan;
-    } else {
-        hasil.textContent = "✅ BENAR dalam " + percobaan + " kali percobaan!";
+// ==============================================
+// VARIABEL UTAMA
+// ==============================================
+let angkaBenar = 0;
+let tebakanTerendah = 1;
+let tebakanTertinggi = 100;
+let jumlahPercobaan = 0;
+let riwayatTebakan = [];
+
+// ==============================================
+// 10 FUNGSI UTAMA
+// ==============================================
+
+// 1. Fungsi buat angka acak
+function buatAngkaAcak(min, maks) {
+    return Math.floor(Math.random() * (maks - min + 1)) + min;
+}
+
+// 2. Fungsi simpan ke Cookies
+function simpanKeCookies(nama, nilai, hari) {
+    let tanggal = new Date();
+    tanggal.setTime(tanggal.getTime() + (hari * 24 * 60 * 60 * 1000));
+    let kadaluarsa = "; expires=" + tanggal.toUTCString();
+    document.cookie = nama + "=" + nilai + kadaluarsa + "; path=/";
+}
+
+// 3. Fungsi baca dari Cookies
+function bacaDariCookies(nama) {
+    let namaCookies = nama + "=";
+    let daftarCookies = document.cookie.split(';');
+    for(let i = 0; i < daftarCookies.length; i++) {
+        let c = daftarCookies[i].trim();
+        if (c.indexOf(namaCookies) === 0) return c.substring(namaCookies.length, c.length);
+    }
+    return "";
+}
+
+// 4. Fungsi simpan ke Cache (LocalStorage)
+function simpanKeCache(nama, nilai) {
+    localStorage.setItem(nama, nilai);
+}
+
+// 5. Fungsi baca dari Cache
+function bacaDariCache(nama) {
+    return localStorage.getItem(nama) || "";
+}
+
+// 6. Fungsi perbarui batas tebakan
+function perbaruiBatas(tebakan) {
+    if (tebakan < angkaBenar && tebakan > tebakanTerendah) {
+        tebakanTerendah = tebakan + 1;
+    }
+    if (tebakan > angkaBenar && tebakan < tebakanTertinggi) {
+        tebakanTertinggi = tebakan - 1;
     }
 }
+
+// 7. Fungsi tampilkan batas tebakan
+function tampilkanBatas() {
+    document.getElementById("infoBatas").innerHTML = 
+        "📡 Coba tebak antara: " + tebakanTerendah + " — " + tebakanTertinggi;
+}
+
+// 8. Fungsi simpan riwayat tebakan
+function simpanRiwayat(tebakan) {
+    jumlahPercobaan++;
+    riwayatTebakan.push(tebakan);
+    document.getElementById("infoRiwayat").innerHTML = 
+        "📊 Percobaan: " + jumlahPercobaan + " | Tebakan Anda: " + riwayatTebakan.join(", ");
+}
+
+// 9. Fungsi cek apakah tebakan benar/salah
+function bandingkanAngka(tebakan) {
+    if (tebakan === angkaBenar) {
+        return "benar";
+    } else if (tebakan < angkaBenar) {
+        return "terlaluKecil";
+    } else {
+        return "terlaluBesar";
+    }
+}
+
+// 10. Fungsi utama: proses tebakan
+function mulaiCekTebakan() {
+    let tebakan = parseInt(document.getElementById("inputTebak").value);
+    let kotakPesan = document.getElementById("pesan");
+
+    // Cek input kosong atau bukan angka
+    if (isNaN(tebakan) || tebakan < 1 || tebakan > 100) {
+        kotakPesan.innerHTML = "<span class='salah'>⚠️ Masukkan angka 1–100!</span>";
+        document.getElementById("inputTebak").value = "";
+        return;
+    }
+
+    // Simpan & perbarui batas
+    simpanRiwayat(tebakan);
+    perbaruiBatas(tebakan);
+    tampilkanBatas();
+
+    // Bandingkan & beri pesan
+    let hasil = bandingkanAngka(tebakan);
+
+    if (hasil === "benar") {
+        kotakPesan.innerHTML = "<span class='benar'>✅ Anda Benar! Angkanya adalah " + angkaBenar + 
+                                "<br>🎉 Selesai dalam " + jumlahPercobaan + " kali tebakan.</span>";
+        // Simpan ke Cache & Cookies saat selesai
+        simpanKeCache("terakhirBenar", angkaBenar + "");
+        simpanKeCache("terakhirPercobaan", jumlahPercobaan + "");
+        simpanKeCookies("terakhirBenar", angkaBenar, 7);
+        simpanKeCookies("terakhirPercobaan", jumlahPercobaan, 7);
+    } else if (hasil === "terlaluKecil") {
+        kotakPesan.innerHTML = "<span class='batas'>❌ Terlalu Kecil! Coba angka yang lebih besar.</span>";
+    } else {
+        kotakPesan.innerHTML = "<span class='batas'>❌ Terlalu Besar! Coba angka yang lebih kecil.</span>";
+    }
+
+    document.getElementById("inputTebak").value = "";
+}
+
+// Fungsi tambahan: mulai ulang permainan
+function mulaiBermainUlang() {
+    angkaBenar = buatAngkaAcak(1, 100);
+    tebakanTerendah = 1;
+    tebakanTertinggi = 100;
+    jumlahPercobaan = 0;
+    riwayatTebakan = [];
+    document.getElementById("pesan").innerHTML = "";
+    document.getElementById("infoBatas").innerHTML = "";
+    document.getElementById("infoRiwayat").innerHTML = "";
+    alert("🔄 Angka baru sudah dibuat! Silakan tebak lagi.");
+}
+
+// ==============================================
+// SAAT HALAMAN DIBUKA
+// ==============================================
+window.onload = function() {
+    angkaBenar = buatAngkaAcak(1, 100);
+    let angkaCache = bacaDariCache("terakhirBenar");
+    let cobaCache = bacaDariCache("terakhirPercobaan");
+    if (angkaCache) {
+        console.log("📂 Rekor terakhir: angka " + angkaCache + " dalam " + cobaCache + " kali tebakan");
+    }
+};
 </script>
+
+</body>
+</html>
